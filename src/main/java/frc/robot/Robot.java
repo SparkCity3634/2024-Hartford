@@ -301,10 +301,10 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
     m_ShooterAnglePID.setFeedbackDevice(m_ShooterAngleEncoder);
 
     //Initialize RelativeEncoders to CANCoder Absolute Value
-    /*m_FrontRightTurnEncoder.setPosition(m_FrontRightTurnCancoder.getAbsolutePosition().getValue() * 360);//might want to add the .waitForUpdate() method to reduce latency?
+    m_FrontRightTurnEncoder.setPosition(m_FrontRightTurnCancoder.getAbsolutePosition().getValue() * 360);//might want to add the .waitForUpdate() method to reduce latency?
     m_FrontLeftTurnEncoder.setPosition(m_FrontLeftTurnCancoder.getAbsolutePosition().getValue() * 360);
     m_BackLeftTurnEncoder.setPosition(m_BackLeftTurnCancoder.getAbsolutePosition().getValue() * 360);
-    m_BackRightTurnEncoder.setPosition(m_BackRightTurnCancoder.getAbsolutePosition().getValue() * 360);*/
+    m_BackRightTurnEncoder.setPosition(m_BackRightTurnCancoder.getAbsolutePosition().getValue() * 360);
 
     // Drive Position PID coefficients (used for Autonomous Control)
     kdP = 0.4; 
