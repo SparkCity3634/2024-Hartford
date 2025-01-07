@@ -41,6 +41,7 @@ import javax.xml.xpath.XPathExpression;
 import com.ctre.phoenix6.configs.CANcoderConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.hardware.CANcoder;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 
 
 /**
@@ -76,6 +77,9 @@ public class Robot extends TimedRobot {
   private RelativeEncoder m_FrontLeftTurnEncoder;
 
   private RelativeEncoder m_ShooterAngleEncoder;
+  private RelativeEncoder m_ShooterLeftEncoder;
+  private RelativeEncoder m_ShooterRightEncoder;
+
 
   //Bind CANcoders for Absolute Turn Encoding
   private static final String canBusName = "rio";
@@ -117,17 +121,22 @@ public class Robot extends TimedRobot {
   private SparkMaxPIDController m_FrontLeftDrivePID;
 
   private SparkMaxPIDController m_ShooterAnglePID;
+  private SparkMaxPIDController m_ShooterLeftPID;
+  private SparkMaxPIDController m_ShooterRightPID;
 
   public double ktP, ktI, ktD, ktIz, ktFF, ktMaxOutput, ktMinOutput, maxRPM, setTurn;
   public double kdP, kdI, kdD, kdIz, kdFF, kdMaxOutput, kdMinOutput;
   public double anglekP, anglekI, anglekD, anglekIz, anglekFF, anglekMinInput, anglekMaxOutput;
-  public double xAxis, yAxis, kYawRate, maxVel, maxYaw;
+  public double ksP, ksI, ksD, ksIz, ksFF, ksMaxOutput, ksMinOutput;
+  public double xAxis, yAxis, kYawRate, maxVel, maxYaw, o_lyAxis, o_ryAxis;
   public double k_posConv = .048; // linear meters traveled at wheel, per motor rotation
   public double k_velConv = .0008106; // linear meters per second (m/s) speed at wheel, convert from motor RPM
-  public double k_turnConv = 16.8; //degrees per volt from Analog turn encoder
+  public double k_turnConv = 16.8; //wheel degrees per motor rotation from steering relative encoder
   public double rotations = 0;
+  public double k_ShooterVelConv = .005319; // linear meters per second (m/s) speed at shooter, convert from motor RPM
+  public double maxShootVelocity;
 
-  public double traplocation = -22;
+  public double traplocation = -22; 
 
 //Create Swerve Kinematics modules
 Translation2d m_BackLeftLocation = new Translation2d(-0.25 ,0.250);
@@ -141,7 +150,14 @@ private final SlewRateLimiter m_yspeedLimiter = new SlewRateLimiter(3);
 private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(3);
 
 public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_BackLeftLocation, m_BackRightLocation, m_FrontLeftLocation, m_FrontRightLocation);
-  
+ 
+private static final String kRedAuto = "Red";
+private static final String kBlueAuto = "Blue";
+private String m_autoSelected;
+private final SendableChooser<String> m_chooser = new SendableChooser<>();
+
+ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
+
   /**
    * This function is run when the robot is first started up and should be used for any
    * initialization code.
@@ -154,6 +170,10 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
     //m_robotContainer1 = new RobotContainer();
     
     //set up our USB Camera 
+
+    m_chooser.setDefaultOption("Red Auto", kRedAuto);
+    m_chooser.addOption("Blue Auto", kBlueAuto);
+    SmartDashboard.putData("Auto choices", m_chooser);
     
     camera1 = CameraServer.startAutomaticCapture(0);
     camera2 = CameraServer.startAutomaticCapture(1);
@@ -206,8 +226,11 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
     BackLeftTurn.setSmartCurrentLimit(40);
     BackRightTurn.setSmartCurrentLimit(40);
 
+    hangLeft.setSmartCurrentLimit(30);
+    hangRight.setSmartCurrentLimit(30);
 
-    //declare turn sensors (Lamprey encoders)
+
+    //declare turn sensors (NEO Relative encoders)
     m_FrontRightTurnEncoder = FrontRightTurn.getEncoder();
     m_BackRightTurnEncoder = BackRightTurn.getEncoder();
     m_FrontLeftTurnEncoder = FrontLeftTurn.getEncoder();
@@ -233,8 +256,13 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
     m_FrontLeftDrivePID = FrontLeftDrive.getPIDController();
     m_FrontRightDrivePID = FrontRightDrive.getPIDController();
 
+    //Create shooter encoders and PIDcontrollers
     m_ShooterAngleEncoder = shooterLift.getEncoder();
     m_ShooterAnglePID = shooterLift.getPIDController();
+    m_ShooterLeftEncoder = shooterLeft.getEncoder();
+    m_ShooterLeftPID = shooterLeft.getPIDController();
+    m_ShooterRightEncoder = shooterRight.getEncoder();
+    m_ShooterRightPID = shooterRight.getPIDController();
    
     // Encoder object created to display position values
     // set conversion from motor RPM to wheel linear meters and meters/second
@@ -258,6 +286,9 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
     m_FrontRightDriveEncoder.setPosition(0);
 
     m_ShooterAngleEncoder.setPosition(0);
+    m_ShooterLeftEncoder.setVelocityConversionFactor(k_ShooterVelConv);
+    m_ShooterRightEncoder.setVelocityConversionFactor(k_ShooterVelConv);
+
 
     /**
      * The PID Controller can be configured to use the analog sensor as its feedback
@@ -297,6 +328,10 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
     FrontLeftTurn.setInverted(true);
     FrontRightTurn.setInverted(true);
     BackLeftTurn.setInverted(true);
+
+    m_ShooterLeftPID.setFeedbackDevice(m_ShooterLeftEncoder);
+    m_ShooterRightPID.setFeedbackDevice(m_ShooterRightEncoder);
+    shooterRight.setInverted(true);
     
     m_ShooterAnglePID.setFeedbackDevice(m_ShooterAngleEncoder);
 
@@ -329,12 +364,23 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
     // Angle Adjustor PID
     anglekP = 0.03;
     anglekI = 0.0000;
-    anglekD = 0;
+    anglekD = 0.001;
     anglekIz = 0; 
     anglekFF = 0.006;
     anglekMinInput = -1.0;
     anglekMaxOutput = 1.0;
     
+    //Shooter PID
+    ksP= 0.0005;
+    ksI = 0.0000;
+    ksD = 0.05;
+    ksIz = 0;
+    ksFF = 0.001;
+    ksMaxOutput = 1;
+    ksMinOutput = -1;
+    maxShootVelocity = 175; //shooter linear velocity at wheel in m/s
+
+
     // set PID coefficients
 
     m_ShooterAnglePID.setP(anglekP);
@@ -343,6 +389,20 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
     m_ShooterAnglePID.setIZone(anglekIz);
     m_ShooterAnglePID.setFF(anglekFF);
     m_ShooterAnglePID.setOutputRange(anglekMinInput, anglekMaxOutput);
+
+    m_ShooterLeftPID.setP(ksP);
+    m_ShooterLeftPID.setI(ksI);
+    m_ShooterLeftPID.setD(ksD);
+    m_ShooterLeftPID.setIZone(ksIz);
+    m_ShooterLeftPID.setFF(ksFF);
+    m_ShooterLeftPID.setOutputRange(ksMinOutput, ksMaxOutput);
+
+    m_ShooterRightPID.setP(anglekP);
+    m_ShooterRightPID.setI(anglekI);
+    m_ShooterRightPID.setD(anglekD);
+    m_ShooterRightPID.setIZone(anglekIz);
+    m_ShooterRightPID.setFF(anglekFF);
+    m_ShooterRightPID.setOutputRange(anglekMinInput, anglekMaxOutput);
 
 
     m_BackRightTurnPID.setP(ktP);
@@ -464,6 +524,8 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
   /** This autonomous runs the autonomous command selected by your {@link RobotContainer} class. */
   @Override
   public void autonomousInit() {
+    m_autoSelected = m_chooser.getSelected();
+    System.out.println("Auto selected: " + m_autoSelected);
     /*m_autonomousCommand = m_robotContainer1.getAutonomousCommand();
 
     // schedule the autonomous command (example)
@@ -473,51 +535,101 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
     
     //insert Auto initiatlization here, set Drive control to position
     */
+    m_BackRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
+    m_FrontRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
+    m_FrontLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
+    m_BackLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);  
+      
+    m_BackLeftDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
+    m_BackRightDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
+    m_FrontLeftDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
+    m_FrontRightDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
     m_Timer.restart();
 
   }
   /** This function is called periodically during autonomous. */
  @Override
   public void autonomousPeriodic() {
-
-    if(m_Timer.hasElapsed(3) != true) {
-      shooterLeft.set(-0.6);
-      shooterRight.set(0.3);
+    switch (m_autoSelected) {
+      case kRedAuto:
+      if(m_Timer.hasElapsed(2) != true) {
+        //shooterLeft.set(-0.7);
+        //shooterRight.set(0.4);
+        m_ShooterLeftPID.setReference(-.6 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
+        m_ShooterRightPID.setReference(-.3 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
+      }
+      else if(m_Timer.hasElapsed(5) != true) {
+        intakeTop.set(1);
+      }
+      else if(m_Timer.hasElapsed(6) != true) {
+        //shooterLeft.set(0.0);  //shooter stops
+        //shooterRight.set(0.0);
+        m_ShooterLeftPID.setReference(0.0, CANSparkMax.ControlType.kVelocity);
+        m_ShooterRightPID.setReference(0.0, CANSparkMax.ControlType.kVelocity);
+        intakeBot.set(0);
+        intakeTop.set(0);    
+      }
+      else if(m_Timer.hasElapsed(10) != true) {
+        m_BackRightTurnPID.setReference(-25, CANSparkMax.ControlType.kPosition);
+        m_FrontRightTurnPID.setReference(-25, CANSparkMax.ControlType.kPosition);
+        m_FrontLeftTurnPID.setReference(-25, CANSparkMax.ControlType.kPosition);
+        m_BackLeftTurnPID.setReference(-25, CANSparkMax.ControlType.kPosition);  
+      
+        m_BackLeftDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+        m_BackRightDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+        m_FrontLeftDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+        m_FrontRightDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+      }
+      else{
+          m_BackRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
+          m_FrontRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
+          m_FrontLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
+          m_BackLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);  
+      
+          m_BackLeftDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
+          m_BackRightDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
+          m_FrontLeftDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
+          m_FrontRightDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
+      }
+      break;
+      case kBlueAuto:
+      if(m_Timer.hasElapsed(2) != true) {
+        m_ShooterLeftPID.setReference(-.6 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
+        m_ShooterRightPID.setReference(-.3 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
+      }
+      else if(m_Timer.hasElapsed(5) != true) {
+        intakeTop.set(1);
+      }
+      else if(m_Timer.hasElapsed(6) != true) {
+        m_ShooterLeftPID.setReference(0.0 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
+        m_ShooterRightPID.setReference(0.0 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
+        intakeBot.set(0);
+        intakeTop.set(0);    
+      }
+      else if(m_Timer.hasElapsed(10) != true) {
+        m_BackRightTurnPID.setReference(25, CANSparkMax.ControlType.kPosition);
+        m_FrontRightTurnPID.setReference(25, CANSparkMax.ControlType.kPosition);
+        m_FrontLeftTurnPID.setReference(25, CANSparkMax.ControlType.kPosition);
+        m_BackLeftTurnPID.setReference(25, CANSparkMax.ControlType.kPosition);  
+      
+        m_BackLeftDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+        m_BackRightDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+        m_FrontLeftDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+        m_FrontRightDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+      }
+      else{
+          m_BackRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
+          m_FrontRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
+          m_FrontLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
+          m_BackLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);  
+      
+          m_BackLeftDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
+          m_BackRightDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
+          m_FrontLeftDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
+          m_FrontRightDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
+      }
+      break;
     }
-    else if(m_Timer.hasElapsed(7) != true) {
-      intakeBot.set(1);
-      intakeTop.set(1);
-    }
-    else if(m_Timer.hasElapsed(10) != true) {
-      shooterLeft.set(0.0);  //shooter stops
-      shooterRight.set(0.0);
-      intakeBot.set(0);
-      intakeTop.set(0);    
-    }
-    else if(m_Timer.hasElapsed(13) != true) {
-      m_BackRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
-      m_FrontRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
-      m_FrontLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
-      m_BackLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);  
-    
-      m_BackLeftDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
-      m_BackRightDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
-      m_FrontLeftDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
-      m_FrontRightDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
-    }
-    else{
-      m_BackRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
-      m_FrontRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
-      m_FrontLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
-      m_BackLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);  
-    
-      m_BackLeftDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
-      m_BackRightDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
-      m_FrontLeftDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
-      m_FrontRightDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
-    }
-
-    
   }
 
   @Override
@@ -529,7 +641,7 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
-
+    m_gyro.reset();
     //Reinitialize Velocity drive mode for teleop with correct PIDs
     // Drive Velocity PID coefficients and max rates (need to retune for Velocity Control)
     kdP = 0.4; 
@@ -586,9 +698,11 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
     SmartDashboard.putNumber("Gyro", (m_gyro.getAngle()+180));    
     
     //Get the Direction input from the XBox controller left stick
-    xAxis = MathUtil.applyDeadband(-m_controller.getLeftY(), .2)*maxVel*.5; // linear m/s
-    yAxis = MathUtil.applyDeadband(-m_controller.getLeftX(), .2)*maxVel*.5; // linear m/s
+    xAxis = MathUtil.applyDeadband(-m_controller.getLeftY(), .2)*maxVel; // linear m/s
+    yAxis = MathUtil.applyDeadband(-m_controller.getLeftX(), .2)*maxVel; // linear m/s
     kYawRate = MathUtil.applyDeadband(-m_controller.getRightX(), .2)*maxYaw; // rad/s
+    o_lyAxis = MathUtil.applyDeadband(-o_controller.getLeftY(), .2); // linear m/s
+    o_ryAxis = MathUtil.applyDeadband(-o_controller.getRightY(), .2); // linear m/s
 
     final var xSpeed =
         -m_xspeedLimiter.calculate(MathUtil.applyDeadband(m_controller.getLeftY(), 0.2))
@@ -609,10 +723,17 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
         -m_rotLimiter.calculate(MathUtil.applyDeadband(m_controller.getRightX(), 0.2))
           *maxYaw;
 
-      //Calculate Swerve Module States based on controller readings
+      /*Calculate Swerve Module States based on controller readings
+      if left bumper is pressed Drive will be Robot Relative
+      otherwise Drive is Field Centric
+      */
 
-    ChassisSpeeds fieldspeeds = ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rot, Rotation2d.fromDegrees(m_gyro.getAngle()+180));
-    //ChassisSpeeds speeds = new ChassisSpeeds(xAxis, yAxis, kYawRate);
+      if(m_controller.getLeftBumper()){
+        fieldspeeds =  new ChassisSpeeds(xAxis, yAxis, rot);
+      }
+      else {
+        fieldspeeds = ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rot, Rotation2d.fromDegrees(m_gyro.getAngle()+180));
+      }
     SwerveModuleState[] moduleStates = m_Kinematics.toSwerveModuleStates(fieldspeeds);
     SwerveModuleState BackLeftSwerve = moduleStates[0];
     SwerveModuleState BackRightSwerve = moduleStates[1];
@@ -624,7 +745,7 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
     var FrontRightOptimized = SwerveModuleState.optimize(FrontRightSwerve, Rotation2d.fromDegrees(m_FrontRightTurnEncoder.getPosition()));
     /**
      * PIDController objects are commanded to a set point using the 
-     * SetReference() method and the reference value of the optimized swerve module states
+     * SetReference() method and the reference value of the optimized swerve mfodule states
      * 
      * The first parameter is the value of the set point, whose units vary
      * depending on the control type set in the second parameter.
@@ -637,23 +758,16 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
      *  com.revrobotics.CANSparkMax.ControlType.kVoltage
      */
     
-    
+    //Set actual motor output values to drive
     m_BackRightTurnPID.setReference(BackRightOptimized.angle.getDegrees(), CANSparkMax.ControlType.kPosition);
-    //
     m_FrontRightTurnPID.setReference(FrontRightOptimized.angle.getDegrees(), CANSparkMax.ControlType.kPosition);
-    //
     m_FrontLeftTurnPID.setReference(FrontLeftOptimized.angle.getDegrees(), CANSparkMax.ControlType.kPosition);
     m_BackLeftTurnPID.setReference(BackLeftOptimized.angle.getDegrees(), CANSparkMax.ControlType.kPosition);  
-    
     m_BackLeftDrivePID.setReference(BackLeftOptimized.speedMetersPerSecond, CANSparkMax.ControlType.kVelocity);
-    //
     m_BackRightDrivePID.setReference(BackRightOptimized.speedMetersPerSecond, CANSparkMax.ControlType.kVelocity);
-    //
     m_FrontLeftDrivePID.setReference(FrontLeftOptimized.speedMetersPerSecond, CANSparkMax.ControlType.kVelocity);
-    //
     m_FrontRightDrivePID.setReference(FrontRightOptimized.speedMetersPerSecond, CANSparkMax.ControlType.kVelocity);
-    //
-    
+        
         
     /* //TURN DRIVE MOTORS OFF
     BackLeftDrive.set(0);
@@ -686,37 +800,59 @@ public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_Ba
 
       
     //Run Intake
-    intakeBot.set(m_controller.getRightTriggerAxis() - m_controller.getLeftTriggerAxis());
+    intakeBot.set((m_controller.getRightTriggerAxis() - m_controller.getLeftTriggerAxis())*0.7);
     intakeTop.set(m_controller.getRightTriggerAxis() - m_controller.getLeftTriggerAxis());
     
-    hangLeft.set(o_controller.getRightTriggerAxis() - o_controller.getLeftTriggerAxis());
-    hangRight.set(o_controller.getRightTriggerAxis() - o_controller.getLeftTriggerAxis());
+    hangLeft.set(o_lyAxis*0.7);
+    hangRight.set(o_ryAxis*0.7);
 
     //Set Shooter Speeds for Speaker or Amp Load
     if(o_controller.getXButton()){ //shooter for reverse
-      shooterLeft.set(.2);
-      shooterRight.set(-0.2);
+      //shooterLeft.set(.2);
+      //shooterRight.set(-0.2);
+      m_ShooterLeftPID.setReference(0.1 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
+      m_ShooterRightPID.setReference(0.1 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
     }
     else if(o_controller.getAButton()){  //shooter speaker
-      shooterLeft.set(-0.6);
-      shooterRight.set(0.3);    
+      //shooterLeft.set(-0.7);
+      //shooterRight.set(0.4);  
+      m_ShooterLeftPID.setReference(-0.6 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
+      m_ShooterRightPID.setReference(-0.3 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);  
     }
     else if(o_controller.getYButton()){  //slow shooter to load for amp/trap
-      shooterLeft.set(-0.2);
-      shooterRight.set(0.2);
+      //shooterLeft.set(-0.2);`
+      //shooterRight.set(0.2);
+      m_ShooterLeftPID.setReference(-0.2 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
+      m_ShooterRightPID.setReference(-0.2 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
     }
     else{
-     shooterLeft.set(0.0);  //shooter stops
-     shooterRight.set(0.0);
+     //shooterLeft.set(0.0);  //shooter stops
+     //shooterRight.set(0.0);
+     m_ShooterLeftPID.setReference(0, CANSparkMax.ControlType.kVelocity);
+     m_ShooterRightPID.setReference(0, CANSparkMax.ControlType.kVelocity);
     }
 
     if(o_controller.getRightBumper()){
       m_ShooterAnglePID.setReference(traplocation, CANSparkMax.ControlType.kPosition);
     }
+    else if(o_controller.getBButton()){
+      m_ShooterAnglePID.setReference(traplocation-7, CANSparkMax.ControlType.kPosition);
+    }
     else {
       m_ShooterAnglePID.setReference(0, CANSparkMax.ControlType.kPosition);
     }
 
+    if(m_controller.getAButton()){
+      m_gyro.reset();
+    }
+
+    if(m_controller.getRightBumper()){
+      maxVel = 1.5;
+    }
+    else{
+      maxVel = 4;
+    }
+//60 degrees
 
   }
   
