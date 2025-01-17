@@ -28,12 +28,15 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 //import frc.robot.RobotContainer;
-import com.revrobotics.CANSparkMax;
+//import com.revrobotics.CANSparkMax;
+import com.revrobotics.spark.SparkMax;
 import com.revrobotics.SparkMaxAnalogSensor;
 import com.revrobotics.CANSparkBase.IdleMode;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+//import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.SparkMaxAbsoluteEncoder.Type;
-import com.revrobotics.SparkMaxPIDController;
+//import com.revrobotics.SparkClosedLoopController;
+import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.SparkMaxRelativeEncoder;
 import com.revrobotics.RelativeEncoder;
 import java.lang.Math;
@@ -57,15 +60,34 @@ public class Robot extends TimedRobot {
   //private RobotContainer m_robotContainer;
     //These are the motor bindings needed for our drivetrain, used in the SwerveModule
   
-  private final CANSparkMax BackRightDrive = new CANSparkMax(41, MotorType.kBrushless);
+  /*private final CANSparkMax BackRightDrive = new CANSparkMax(41, MotorType.kBrushless);
   private final CANSparkMax BackRightTurn = new CANSparkMax(42, MotorType.kBrushless);
   private final CANSparkMax FrontRightDrive = new CANSparkMax(11, MotorType.kBrushless);
   private final CANSparkMax FrontRightTurn = new CANSparkMax(12, MotorType.kBrushless);
   private final CANSparkMax FrontLeftDrive = new CANSparkMax(21, MotorType.kBrushless);
   private final CANSparkMax FrontLeftTurn = new CANSparkMax(22, MotorType.kBrushless);
   private final CANSparkMax BackLeftDrive = new CANSparkMax(31, MotorType.kBrushless);
-  private final CANSparkMax BackLeftTurn = new CANSparkMax(32, MotorType.kBrushless);
-  
+  private final CANSparkMax BackLeftTurn = new CANSparkMax(32, MotorType.kBrushless); */
+
+  SparkMax BackRightDrive = new SparkMax(41, MotorType.kBrushless);
+  SparkMax BackRightTurn = new SparkMax(42, MotorType.kBrushless);
+  SparkMax FrontRightDrive = new SparkMax(11, MotorType.kBrushless);
+  SparkMax FrontRightTurn = new SparkMax(12, MotorType.kBrushless);
+  SparkMax FrontLeftDrive = new SparkMax(21, MotorType.kBrushless);
+  SparkMax FrontLeftTurn = new SparkMax(22, MotorType.kBrushless);
+  SparkMax BackLeftDrive = new SparkMax(31, MotorType.kBrushless);
+  SparkMax BackLeftTurn = new SparkMax(32, MotorType.kBrushless);
+
+  SparkMaxConfig configBackRightDrive = new SparkMaxConfig();
+  SparkMaxConfig configBackRightTurn = new SparkMaxConfig();
+  SparkMaxConfig configFrontLeftDrive = new SparkMaxConfig();
+  SparkMaxConfig configFrontLeftTurn = new SparkMaxConfig();
+  SparkMaxConfig configBackLeftDrive = new SparkMaxConfig();
+  SparkMaxConfig configBackLeftTurn= new SparkMaxConfig();
+  SparkMaxConfig configFrontRightDrive = new SparkMaxConfig();
+  SparkMaxConfig configFrontRightTurn = new SparkMaxConfig();
+
+
   private RelativeEncoder m_BackLeftDriveEncoder;
   private RelativeEncoder m_BackRightDriveEncoder;
   private RelativeEncoder m_FrontRightDriveEncoder;
@@ -90,15 +112,25 @@ public class Robot extends TimedRobot {
   private final DutyCycleOut fwdOut = new DutyCycleOut(0);
 
   //Bind Module controllers
-  private final CANSparkMax intakeTop = new CANSparkMax(57, MotorType.kBrushless);
-  private final CANSparkMax intakeBot = new CANSparkMax(56, MotorType.kBrushless);
-  private final CANSparkMax hangLeft = new CANSparkMax(61, MotorType.kBrushless);
-  private final CANSparkMax hangRight = new CANSparkMax(60, MotorType.kBrushless);
-  private final CANSparkMax shooterLeft = new CANSparkMax(53, MotorType.kBrushless);
-  private final CANSparkMax shooterRight = new CANSparkMax(55, MotorType.kBrushless);
-  private final CANSparkMax shooterLift = new CANSparkMax(51, MotorType.kBrushless);
+  //updated from CANSparkMax to SparkMax
+SparkMax intakeTop = new SparkMax(57, MotorType.kBrushless);
+SparkMax intakeBot = new SparkMax(56, MotorType.kBrushless);
+SparkMax hangLeft = new SparkMax(61, MotorType.kBrushless);
+SparkMax hangRight = new SparkMax(60, MotorType.kBrushless);
+SparkMax shooterLeft = new SparkMax(53, MotorType.kBrushless);
+SparkMax shooterRight = new SparkMax(55, MotorType.kBrushless);
+SparkMax shooterLift = new SparkMax(51, MotorType.kBrushless);
 
-  
+  SparkMaxConfig configintakeTop = new SparkMaxConfig();
+  SparkMaxConfig configintakeBot = new SparkMaxConfig();
+  SparkMaxConfig confighangLeft = new SparkMaxConfig();
+  SparkMaxConfig confighangRight = new SparkMaxConfig();
+  SparkMaxConfig configshooterLeft = new SparkMaxConfig();
+  SparkMaxConfig configshooterRight = new SparkMaxConfig();
+  SparkMaxConfig configshooterLift = new SparkMaxConfig();
+
+
+
   XboxController o_controller = new XboxController(1);  
   XboxController m_controller = new XboxController(0);  
   private ADIS16470_IMU m_gyro = new ADIS16470_IMU();
@@ -109,20 +141,20 @@ public class Robot extends TimedRobot {
   Timer m_Timer = new Timer();
 //private final DifferentialDrive m_robotDrive = new DifferentialDrive(m_leftDrive, m_rightDrive);
 
-  //create SparkMaxPIDControllers to fix turn motors
-  private SparkMaxPIDController m_BackRightTurnPID;
-  private SparkMaxPIDController m_FrontRightTurnPID;
-  private SparkMaxPIDController m_FrontLeftTurnPID;
-  private SparkMaxPIDController m_BackLeftTurnPID;
+  //create SparkClosedLoopControllers to fix turn motors
+  private SparkClosedLoopController m_BackRightTurnPID;
+  private SparkClosedLoopController m_FrontRightTurnPID;
+  private SparkClosedLoopController m_FrontLeftTurnPID;
+  private SparkClosedLoopController m_BackLeftTurnPID;
   
-  private SparkMaxPIDController m_BackLeftDrivePID;
-  private SparkMaxPIDController m_BackRightDrivePID;
-  private SparkMaxPIDController m_FrontRightDrivePID;
-  private SparkMaxPIDController m_FrontLeftDrivePID;
+  private SparkClosedLoopController m_BackLeftDrivePID;
+  private SparkClosedLoopController m_BackRightDrivePID;
+  private SparkClosedLoopController m_FrontRightDrivePID;
+  private SparkClosedLoopController m_FrontLeftDrivePID;
 
-  private SparkMaxPIDController m_ShooterAnglePID;
-  private SparkMaxPIDController m_ShooterLeftPID;
-  private SparkMaxPIDController m_ShooterRightPID;
+  private SparkClosedLoopController m_ShooterAnglePID;
+  private SparkClosedLoopController m_ShooterLeftPID;
+  private SparkClosedLoopController m_ShooterRightPID;
 
   public double ktP, ktI, ktD, ktIz, ktFF, ktMaxOutput, ktMinOutput, maxRPM, setTurn;
   public double kdP, kdI, kdD, kdIz, kdFF, kdMaxOutput, kdMinOutput;
@@ -183,12 +215,12 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     camera1.setConnectionStrategy(ConnectionStrategy.kKeepOpen);
     camera2.setConnectionStrategy(ConnectionStrategy.kKeepOpen);
     
-    BackLeftDrive.restoreFactoryDefaults();
+   /* BackLeftDrive.restoreFactoryDefaults();
     BackRightDrive.restoreFactoryDefaults();
     FrontLeftDrive.restoreFactoryDefaults();
     FrontRightDrive.restoreFactoryDefaults();
 
-    shooterLift.restoreFactoryDefaults();
+    shooterLift.restoreFactoryDefaults(); */
 
     
     /* Configure CANcoder */
@@ -323,6 +355,17 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     FrontRightDrive.setInverted(false);
     BackLeftDrive.setInverted(false);
     BackRightDrive.setInverted(false);
+
+    configBackRightDrive.inverted(true);
+    configBackRightTurn.inverted(true);
+    configFrontRightDrive.inverted(true);
+    configFrontLeftDrive.inverted(true);
+    configFrontLeftTurn.inverted(true);
+    configBackLeftDrive.inverted(true);
+    configBackLeftTurn.inverted(true);
+    configFrontRightDrive.inverted(true);
+    configFrontRightTurn.inverted(true);
+
 
     BackRightTurn.setInverted(true);
     FrontLeftTurn.setInverted(true);
