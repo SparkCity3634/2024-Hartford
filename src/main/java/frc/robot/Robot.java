@@ -87,7 +87,7 @@ public class Robot extends TimedRobot {
   SparkMaxConfig configFrontRightDrive = new SparkMaxConfig();
   SparkMaxConfig configFrontRightTurn = new SparkMaxConfig();
 
-  //this is a new comment
+  //this is a new comment.
 
   private RelativeEncoder m_BackLeftDriveEncoder;
   private RelativeEncoder m_BackRightDriveEncoder;
