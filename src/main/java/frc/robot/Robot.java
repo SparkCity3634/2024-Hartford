@@ -4,8 +4,6 @@
 
 package frc.robot;
 
-//imports
-
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -30,12 +28,15 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 //import frc.robot.RobotContainer;
-import com.revrobotics.CANSparkMax;
+//import com.revrobotics.CANSparkMax;
+import com.revrobotics.spark.SparkMax;
 import com.revrobotics.SparkMaxAnalogSensor;
 import com.revrobotics.CANSparkBase.IdleMode;
-import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+//import com.revrobotics.CANSparkMaxLowLevel.MotorType;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.SparkMaxAbsoluteEncoder.Type;
-import com.revrobotics.SparkMaxPIDController;
+//import com.revrobotics.SparkClosedLoopController;
+import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.SparkMaxRelativeEncoder;
 import com.revrobotics.RelativeEncoder;
 import java.lang.Math;
@@ -57,17 +58,36 @@ public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
 
   //private RobotContainer m_robotContainer;
-    //These are the motor bindings needed for our drivetrain, used in the SwerveModule
-  
-  private final CANSparkMax BackRightDrive = new CANSparkMax(41, MotorType.kBrushless);
+  //These are the motor bindings needed for our drivetrain, used in the SwerveModule
+
+  /*private final CANSparkMax BackRightDrive = new CANSparkMax(41, MotorType.kBrushless);
   private final CANSparkMax BackRightTurn = new CANSparkMax(42, MotorType.kBrushless);
   private final CANSparkMax FrontRightDrive = new CANSparkMax(11, MotorType.kBrushless);
   private final CANSparkMax FrontRightTurn = new CANSparkMax(12, MotorType.kBrushless);
   private final CANSparkMax FrontLeftDrive = new CANSparkMax(21, MotorType.kBrushless);
   private final CANSparkMax FrontLeftTurn = new CANSparkMax(22, MotorType.kBrushless);
   private final CANSparkMax BackLeftDrive = new CANSparkMax(31, MotorType.kBrushless);
-  private final CANSparkMax BackLeftTurn = new CANSparkMax(32, MotorType.kBrushless);
-  
+  private final CANSparkMax BackLeftTurn = new CANSparkMax(32, MotorType.kBrushless); */
+
+  SparkMax BackRightDrive = new SparkMax(41, MotorType.kBrushless);
+  SparkMax BackRightTurn = new SparkMax(42, MotorType.kBrushless);
+  SparkMax FrontRightDrive = new SparkMax(11, MotorType.kBrushless);
+  SparkMax FrontRightTurn = new SparkMax(12, MotorType.kBrushless);
+  SparkMax FrontLeftDrive = new SparkMax(21, MotorType.kBrushless);
+  SparkMax FrontLeftTurn = new SparkMax(22, MotorType.kBrushless);
+  SparkMax BackLeftDrive = new SparkMax(31, MotorType.kBrushless);
+  SparkMax BackLeftTurn = new SparkMax(32, MotorType.kBrushless);
+
+  SparkMaxConfig configBackRightDrive = new SparkMaxConfig();
+  SparkMaxConfig configBackRightTurn = new SparkMaxConfig();
+  SparkMaxConfig configFrontLeftDrive = new SparkMaxConfig();
+  SparkMaxConfig configFrontLeftTurn = new SparkMaxConfig();
+  SparkMaxConfig configBackLeftDrive = new SparkMaxConfig();
+  SparkMaxConfig configBackLeftTurn= new SparkMaxConfig();
+  SparkMaxConfig configFrontRightDrive = new SparkMaxConfig();
+  SparkMaxConfig configFrontRightTurn = new SparkMaxConfig();
+
+
   private RelativeEncoder m_BackLeftDriveEncoder;
   private RelativeEncoder m_BackRightDriveEncoder;
   private RelativeEncoder m_FrontRightDriveEncoder;
@@ -92,17 +112,27 @@ public class Robot extends TimedRobot {
   private final DutyCycleOut fwdOut = new DutyCycleOut(0);
 
   //Bind Module controllers
-  private final CANSparkMax intakeTop = new CANSparkMax(57, MotorType.kBrushless);
-  private final CANSparkMax intakeBot = new CANSparkMax(56, MotorType.kBrushless);
-  private final CANSparkMax hangLeft = new CANSparkMax(61, MotorType.kBrushless);
-  private final CANSparkMax hangRight = new CANSparkMax(60, MotorType.kBrushless);
-  private final CANSparkMax shooterLeft = new CANSparkMax(53, MotorType.kBrushless);
-  private final CANSparkMax shooterRight = new CANSparkMax(55, MotorType.kBrushless);
-  private final CANSparkMax shooterLift = new CANSparkMax(51, MotorType.kBrushless);
+  //updated from CANSparkMax to SparkMax
+  SparkMax intakeTop = new SparkMax(57, MotorType.kBrushless);
+  SparkMax intakeBot = new SparkMax(56, MotorType.kBrushless);
+  SparkMax hangLeft = new SparkMax(61, MotorType.kBrushless);
+  SparkMax hangRight = new SparkMax(60, MotorType.kBrushless);
+  SparkMax shooterLeft = new SparkMax(53, MotorType.kBrushless);
+  SparkMax shooterRight = new SparkMax(55, MotorType.kBrushless);
+  SparkMax shooterLift = new SparkMax(51, MotorType.kBrushless);
 
-  
-  XboxController o_controller = new XboxController(1);  
-  XboxController m_controller = new XboxController(0);  
+  SparkMaxConfig configintakeTop = new SparkMaxConfig();
+  SparkMaxConfig configintakeBot = new SparkMaxConfig();
+  SparkMaxConfig confighangLeft = new SparkMaxConfig();
+  SparkMaxConfig confighangRight = new SparkMaxConfig();
+  SparkMaxConfig configshooterLeft = new SparkMaxConfig();
+  SparkMaxConfig configshooterRight = new SparkMaxConfig();
+  SparkMaxConfig configshooterLift = new SparkMaxConfig();
+
+
+
+  XboxController o_controller = new XboxController(1);
+  XboxController m_controller = new XboxController(0);
   private ADIS16470_IMU m_gyro = new ADIS16470_IMU();
 
   UsbCamera camera1;
@@ -111,20 +141,20 @@ public class Robot extends TimedRobot {
   Timer m_Timer = new Timer();
 //private final DifferentialDrive m_robotDrive = new DifferentialDrive(m_leftDrive, m_rightDrive);
 
-  //create SparkMaxPIDControllers to fix turn motors
-  private SparkMaxPIDController m_BackRightTurnPID;
-  private SparkMaxPIDController m_FrontRightTurnPID;
-  private SparkMaxPIDController m_FrontLeftTurnPID;
-  private SparkMaxPIDController m_BackLeftTurnPID;
-  
-  private SparkMaxPIDController m_BackLeftDrivePID;
-  private SparkMaxPIDController m_BackRightDrivePID;
-  private SparkMaxPIDController m_FrontRightDrivePID;
-  private SparkMaxPIDController m_FrontLeftDrivePID;
+  //create SparkClosedLoopControllers to fix turn motors
+  private SparkClosedLoopController m_BackRightTurnPID;
+  private SparkClosedLoopController m_FrontRightTurnPID;
+  private SparkClosedLoopController m_FrontLeftTurnPID;
+  private SparkClosedLoopController m_BackLeftTurnPID;
 
-  private SparkMaxPIDController m_ShooterAnglePID;
-  private SparkMaxPIDController m_ShooterLeftPID;
-  private SparkMaxPIDController m_ShooterRightPID;
+  private SparkClosedLoopController m_BackLeftDrivePID;
+  private SparkClosedLoopController m_BackRightDrivePID;
+  private SparkClosedLoopController m_FrontRightDrivePID;
+  private SparkClosedLoopController m_FrontLeftDrivePID;
+
+  private SparkClosedLoopController m_ShooterAnglePID;
+  private SparkClosedLoopController m_ShooterLeftPID;
+  private SparkClosedLoopController m_ShooterRightPID;
 
   public double ktP, ktI, ktD, ktIz, ktFF, ktMaxOutput, ktMinOutput, maxRPM, setTurn;
   public double kdP, kdI, kdD, kdIz, kdFF, kdMaxOutput, kdMinOutput;
@@ -138,27 +168,27 @@ public class Robot extends TimedRobot {
   public double k_ShooterVelConv = .005319; // linear meters per second (m/s) speed at shooter, convert from motor RPM
   public double maxShootVelocity;
 
-  public double traplocation = -22; 
+  public double traplocation = -22;
 
-//Create Swerve Kinematics modules
-Translation2d m_BackLeftLocation = new Translation2d(-0.25 ,0.250);
-Translation2d m_BackRightLocation = new Translation2d(-0.25 ,-.250);
-Translation2d m_FrontLeftLocation = new Translation2d(.250,.250);
-Translation2d m_FrontRightLocation = new Translation2d(.250,-.250);
+  //Create Swerve Kinematics modules
+  Translation2d m_BackLeftLocation = new Translation2d(-0.25 ,0.250);
+  Translation2d m_BackRightLocation = new Translation2d(-0.25 ,-.250);
+  Translation2d m_FrontLeftLocation = new Translation2d(.250,.250);
+  Translation2d m_FrontRightLocation = new Translation2d(.250,-.250);
 
-// Slew rate limiters to make joystick inputs more gentle; 1/3 sec from 0 to 1.
-private final SlewRateLimiter m_xspeedLimiter = new SlewRateLimiter(3);
-private final SlewRateLimiter m_yspeedLimiter = new SlewRateLimiter(3);
-private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(3);
+  // Slew rate limiters to make joystick inputs more gentle; 1/3 sec from 0 to 1.
+  private final SlewRateLimiter m_xspeedLimiter = new SlewRateLimiter(3);
+  private final SlewRateLimiter m_yspeedLimiter = new SlewRateLimiter(3);
+  private final SlewRateLimiter m_rotLimiter = new SlewRateLimiter(3);
 
-public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_BackLeftLocation, m_BackRightLocation, m_FrontLeftLocation, m_FrontRightLocation);
- 
-private static final String kRedAuto = "Red";
-private static final String kBlueAuto = "Blue";
-private String m_autoSelected;
-private final SendableChooser<String> m_chooser = new SendableChooser<>();
+  public final SwerveDriveKinematics m_Kinematics = new SwerveDriveKinematics(m_BackLeftLocation, m_BackRightLocation, m_FrontLeftLocation, m_FrontRightLocation);
 
-ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
+  private static final String kRedAuto = "Red";
+  private static final String kBlueAuto = "Blue";
+  private String m_autoSelected;
+  private final SendableChooser<String> m_chooser = new SendableChooser<>();
+
+  ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
 
   /**
    * This function is run when the robot is first started up and should be used for any
@@ -166,17 +196,17 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
    */
   @Override
   public void robotInit() {
-    
+
     // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
     // autonomous chooser on the dashboard.
     //m_robotContainer1 = new RobotContainer();
-    
-    //set up our USB Camera 
+
+    //set up our USB Camera
 
     m_chooser.setDefaultOption("Red Auto", kRedAuto);
     m_chooser.addOption("Blue Auto", kBlueAuto);
     SmartDashboard.putData("Auto choices", m_chooser);
-    
+
     camera1 = CameraServer.startAutomaticCapture(0);
     camera2 = CameraServer.startAutomaticCapture(1);
     server = CameraServer.getServer();
@@ -184,15 +214,15 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     camera2.setResolution(320, 240);
     camera1.setConnectionStrategy(ConnectionStrategy.kKeepOpen);
     camera2.setConnectionStrategy(ConnectionStrategy.kKeepOpen);
-    
-    BackLeftDrive.restoreFactoryDefaults();
+
+   /* BackLeftDrive.restoreFactoryDefaults();
     BackRightDrive.restoreFactoryDefaults();
     FrontLeftDrive.restoreFactoryDefaults();
     FrontRightDrive.restoreFactoryDefaults();
 
-    shooterLift.restoreFactoryDefaults();
+    shooterLift.restoreFactoryDefaults(); */
 
-    
+
     /* Configure CANcoder */
     //var toApply = new CANcoderConfiguration();
 
@@ -237,7 +267,7 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     m_BackRightTurnEncoder = BackRightTurn.getEncoder();
     m_FrontLeftTurnEncoder = FrontLeftTurn.getEncoder();
     m_BackLeftTurnEncoder = BackLeftTurn.getEncoder();
-    
+
     //set conversion factor for 0 to 360 degrees
     m_BackRightTurnEncoder.setPositionConversionFactor(k_turnConv);
     m_BackRightTurnEncoder.setVelocityConversionFactor(k_turnConv);
@@ -247,7 +277,7 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     m_FrontLeftTurnEncoder.setVelocityConversionFactor(k_turnConv);
     m_BackLeftTurnEncoder.setPositionConversionFactor(k_turnConv);
     m_BackLeftTurnEncoder.setVelocityConversionFactor(k_turnConv);
-    
+
     m_BackRightTurnPID = BackRightTurn.getPIDController();
     m_FrontRightTurnPID = FrontRightTurn.getPIDController();
     m_FrontLeftTurnPID = FrontLeftTurn.getPIDController();
@@ -265,7 +295,7 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     m_ShooterLeftPID = shooterLeft.getPIDController();
     m_ShooterRightEncoder = shooterRight.getEncoder();
     m_ShooterRightPID = shooterRight.getPIDController();
-   
+
     // Encoder object created to display position values
     // set conversion from motor RPM to wheel linear meters and meters/second
     // with SDS Swerve gear ratio of 6.75 from motor to wheel, wheel diameter of 4" = .314m conv factor = ??
@@ -295,7 +325,7 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     /**
      * The PID Controller can be configured to use the analog sensor as its feedback
      * device with the method SetFeedbackDevice() and passing the PID Controller
-     * the SparkMaxAnalogSensor object. 
+     * the SparkMaxAnalogSensor object.
      */
     m_BackRightTurnPID.setFeedbackDevice(m_BackRightTurnEncoder);
     m_BackRightTurnPID.setPositionPIDWrappingEnabled(true);
@@ -326,6 +356,17 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     BackLeftDrive.setInverted(false);
     BackRightDrive.setInverted(false);
 
+    configBackRightDrive.inverted(true);
+    configBackRightTurn.inverted(true);
+    configFrontRightDrive.inverted(true);
+    configFrontLeftDrive.inverted(true);
+    configFrontLeftTurn.inverted(true);
+    configBackLeftDrive.inverted(true);
+    configBackLeftTurn.inverted(true);
+    configFrontRightDrive.inverted(true);
+    configFrontRightTurn.inverted(true);
+
+
     BackRightTurn.setInverted(true);
     FrontLeftTurn.setInverted(true);
     FrontRightTurn.setInverted(true);
@@ -334,7 +375,7 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     m_ShooterLeftPID.setFeedbackDevice(m_ShooterLeftEncoder);
     m_ShooterRightPID.setFeedbackDevice(m_ShooterRightEncoder);
     shooterRight.setInverted(true);
-    
+
     m_ShooterAnglePID.setFeedbackDevice(m_ShooterAngleEncoder);
 
     //Initialize RelativeEncoders to CANCoder Absolute Value
@@ -344,34 +385,34 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     m_BackRightTurnEncoder.setPosition(m_BackRightTurnCancoder.getAbsolutePosition().getValue() * 360);
 
     // Drive Position PID coefficients (used for Autonomous Control)
-    kdP = 0.4; 
+    kdP = 0.4;
     kdI = 0.00000;
-    kdD = 0.05; 
-    kdIz = 0; 
-    kdFF = 0.01; 
-    kdMaxOutput = 1; 
+    kdD = 0.05;
+    kdIz = 0;
+    kdFF = 0.01;
+    kdMaxOutput = 1;
     kdMinOutput = -1;
     maxVel = 4; // m/s linear velocity of drive wheel
     maxYaw = 2*Math.PI;   // max rad/s for chassis rotation rate
-    
+
     // Turn PID coefficients
     ktP = 0.07; //baseline was .07
     ktI = 0.0000;
     ktD = 0.001; //baseline was .1
-    ktIz = 0; 
+    ktIz = 0;
     ktFF = 0.003; //baseline was 0
-    ktMaxOutput = .9; 
+    ktMaxOutput = .9;
     ktMinOutput = -.9;
 
     // Angle Adjustor PID
     anglekP = 0.03;
     anglekI = 0.0000;
     anglekD = 0.001;
-    anglekIz = 0; 
+    anglekIz = 0;
     anglekFF = 0.006;
     anglekMinInput = -1.0;
     anglekMaxOutput = 1.0;
-    
+
     //Shooter PID
     ksP= 0.0005;
     ksI = 0.0000;
@@ -435,33 +476,33 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     m_BackLeftTurnPID.setFF(ktFF);
     m_BackLeftTurnPID.setOutputRange(ktMinOutput, ktMaxOutput);
 
-     m_BackLeftDrivePID.setP(kdP);
-     m_BackLeftDrivePID.setI(kdI);
-     m_BackLeftDrivePID.setD(kdD);
-     m_BackLeftDrivePID.setIZone(kdIz);
-     m_BackLeftDrivePID.setFF(kdFF);
-     m_BackLeftDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
+    m_BackLeftDrivePID.setP(kdP);
+    m_BackLeftDrivePID.setI(kdI);
+    m_BackLeftDrivePID.setD(kdD);
+    m_BackLeftDrivePID.setIZone(kdIz);
+    m_BackLeftDrivePID.setFF(kdFF);
+    m_BackLeftDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
 
-     m_BackRightDrivePID.setP(kdP);
-     m_BackRightDrivePID.setI(kdI);
-     m_BackRightDrivePID.setD(kdD);
-     m_BackRightDrivePID.setIZone(kdIz);
-     m_BackRightDrivePID.setFF(kdFF);
-     m_BackRightDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
+    m_BackRightDrivePID.setP(kdP);
+    m_BackRightDrivePID.setI(kdI);
+    m_BackRightDrivePID.setD(kdD);
+    m_BackRightDrivePID.setIZone(kdIz);
+    m_BackRightDrivePID.setFF(kdFF);
+    m_BackRightDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
 
-     m_FrontLeftDrivePID.setP(kdP);
-     m_FrontLeftDrivePID.setI(kdI);
-     m_FrontLeftDrivePID.setD(kdD);
-     m_FrontLeftDrivePID.setIZone(kdIz);
-     m_FrontLeftDrivePID.setFF(kdFF);
-     m_FrontLeftDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
+    m_FrontLeftDrivePID.setP(kdP);
+    m_FrontLeftDrivePID.setI(kdI);
+    m_FrontLeftDrivePID.setD(kdD);
+    m_FrontLeftDrivePID.setIZone(kdIz);
+    m_FrontLeftDrivePID.setFF(kdFF);
+    m_FrontLeftDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
 
-     m_FrontRightDrivePID.setP(kdP);
-     m_FrontRightDrivePID.setI(kdI);
-     m_FrontRightDrivePID.setD(kdD);
-     m_FrontRightDrivePID.setIZone(kdIz);
-     m_FrontRightDrivePID.setFF(kdFF);
-     m_FrontRightDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
+    m_FrontRightDrivePID.setP(kdP);
+    m_FrontRightDrivePID.setI(kdI);
+    m_FrontRightDrivePID.setD(kdD);
+    m_FrontRightDrivePID.setIZone(kdIz);
+    m_FrontRightDrivePID.setFF(kdFF);
+    m_FrontRightDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
 
     //Set Initial Swerve States
     ChassisSpeeds speeds = new ChassisSpeeds(0, 0, 0);
@@ -474,7 +515,7 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     SwerveModuleState BackRightOptimized = SwerveModuleState.optimize(BackRightSwerve, Rotation2d.fromDegrees(MathUtil.inputModulus(m_BackRightTurnEncoder.getPosition(),0 , 360)));
     SwerveModuleState FrontLeftOptimized = SwerveModuleState.optimize(FrontLeftSwerve, Rotation2d.fromDegrees(MathUtil.inputModulus(m_FrontLeftTurnEncoder.getPosition(),0 , 360)));
     SwerveModuleState FrontRightOptimized = SwerveModuleState.optimize(FrontRightSwerve, Rotation2d.fromDegrees(MathUtil.inputModulus(m_FrontRightTurnEncoder.getPosition(),0 , 360)));
-   
+
     m_gyro.reset();
 
     // display PID coefficients on SmartDashboard
@@ -482,8 +523,8 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     //SmartDashboard.putNumber("Get P", m_BackLeftDrivePID.getP());
     SmartDashboard.putNumber("I Gain", kdI);
     //SmartDashboard.putNumber("Get I", m_BackLeftDrivePID.getI());
-    SmartDashboard.putNumber("D Gain", kdD);    
-    
+    SmartDashboard.putNumber("D Gain", kdD);
+
   }
 
   /**
@@ -503,11 +544,11 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     double tx = LimelightHelpers.getTX("");
     System.out.println("The value of tx is: " + tx);
     /**Cancoder Abs Position updates the CANSparkMax Relative Encoders to reduce drift
-       * getPosition automatically calls refresh(), no need to manually refresh.
-       * 
-       * StatusSignalValues also have the toString method implemented, to provide
-       * a useful print of the signal.
-       */
+     * getPosition automatically calls refresh(), no need to manually refresh.
+     *
+     * StatusSignalValues also have the toString method implemented, to provide
+     * a useful print of the signal.
+     */
       /*m_FrontRightTurnEncoder.setPosition(m_FrontRightTurnCancoder.getPosition().getValue() * 360);//might want to add the .waitForUpdate() method to reduce latency?
       m_FrontLeftTurnEncoder.setPosition(m_FrontLeftTurnCancoder.getPosition().getValue() * 360);
       m_BackLeftTurnEncoder.setPosition(m_BackLeftTurnCancoder.getPosition().getValue() * 360);
@@ -534,14 +575,14 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     if (m_autonomousCommand != null) {
       m_autonomousCommand.schedule();
     }
-    
+
     //insert Auto initiatlization here, set Drive control to position
     */
     m_BackRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
     m_FrontRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
     m_FrontLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
-    m_BackLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);  
-      
+    m_BackLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
+
     m_BackLeftDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
     m_BackRightDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
     m_FrontLeftDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
@@ -550,87 +591,87 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
 
   }
   /** This function is called periodically during autonomous. */
- @Override
+  @Override
   public void autonomousPeriodic() {
     switch (m_autoSelected) {
       case kRedAuto:
-      if(m_Timer.hasElapsed(2) != true) {
-        //shooterLeft.set(-0.7);
-        //shooterRight.set(0.4);
-        m_ShooterLeftPID.setReference(-.6 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
-        m_ShooterRightPID.setReference(-.3 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
-      }
-      else if(m_Timer.hasElapsed(5) != true) {
-        intakeTop.set(1);
-      }
-      else if(m_Timer.hasElapsed(6) != true) {
-        //shooterLeft.set(0.0);  //shooter stops
-        //shooterRight.set(0.0);
-        m_ShooterLeftPID.setReference(0.0, CANSparkMax.ControlType.kVelocity);
-        m_ShooterRightPID.setReference(0.0, CANSparkMax.ControlType.kVelocity);
-        intakeBot.set(0);
-        intakeTop.set(0);    
-      }
-      else if(m_Timer.hasElapsed(10) != true) {
-        m_BackRightTurnPID.setReference(-25, CANSparkMax.ControlType.kPosition);
-        m_FrontRightTurnPID.setReference(-25, CANSparkMax.ControlType.kPosition);
-        m_FrontLeftTurnPID.setReference(-25, CANSparkMax.ControlType.kPosition);
-        m_BackLeftTurnPID.setReference(-25, CANSparkMax.ControlType.kPosition);  
-      
-        m_BackLeftDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
-        m_BackRightDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
-        m_FrontLeftDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
-        m_FrontRightDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
-      }
-      else{
+        if(m_Timer.hasElapsed(2) != true) {
+          //shooterLeft.set(-0.7);
+          //shooterRight.set(0.4);
+          m_ShooterLeftPID.setReference(-.6 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
+          m_ShooterRightPID.setReference(-.3 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
+        }
+        else if(m_Timer.hasElapsed(5) != true) {
+          intakeTop.set(1);
+        }
+        else if(m_Timer.hasElapsed(6) != true) {
+          //shooterLeft.set(0.0);  //shooter stops
+          //shooterRight.set(0.0);
+          m_ShooterLeftPID.setReference(0.0, CANSparkMax.ControlType.kVelocity);
+          m_ShooterRightPID.setReference(0.0, CANSparkMax.ControlType.kVelocity);
+          intakeBot.set(0);
+          intakeTop.set(0);
+        }
+        else if(m_Timer.hasElapsed(10) != true) {
+          m_BackRightTurnPID.setReference(-25, CANSparkMax.ControlType.kPosition);
+          m_FrontRightTurnPID.setReference(-25, CANSparkMax.ControlType.kPosition);
+          m_FrontLeftTurnPID.setReference(-25, CANSparkMax.ControlType.kPosition);
+          m_BackLeftTurnPID.setReference(-25, CANSparkMax.ControlType.kPosition);
+
+          m_BackLeftDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+          m_BackRightDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+          m_FrontLeftDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+          m_FrontRightDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+        }
+        else{
           m_BackRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
           m_FrontRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
           m_FrontLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
-          m_BackLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);  
-      
+          m_BackLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
+
           m_BackLeftDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
           m_BackRightDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
           m_FrontLeftDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
           m_FrontRightDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
-      }
-      break;
+        }
+        break;
       case kBlueAuto:
-      if(m_Timer.hasElapsed(2) != true) {
-        m_ShooterLeftPID.setReference(-.6 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
-        m_ShooterRightPID.setReference(-.3 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
-      }
-      else if(m_Timer.hasElapsed(5) != true) {
-        intakeTop.set(1);
-      }
-      else if(m_Timer.hasElapsed(6) != true) {
-        m_ShooterLeftPID.setReference(0.0 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
-        m_ShooterRightPID.setReference(0.0 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
-        intakeBot.set(0);
-        intakeTop.set(0);    
-      }
-      else if(m_Timer.hasElapsed(10) != true) {
-        m_BackRightTurnPID.setReference(25, CANSparkMax.ControlType.kPosition);
-        m_FrontRightTurnPID.setReference(25, CANSparkMax.ControlType.kPosition);
-        m_FrontLeftTurnPID.setReference(25, CANSparkMax.ControlType.kPosition);
-        m_BackLeftTurnPID.setReference(25, CANSparkMax.ControlType.kPosition);  
-      
-        m_BackLeftDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
-        m_BackRightDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
-        m_FrontLeftDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
-        m_FrontRightDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
-      }
-      else{
+        if(m_Timer.hasElapsed(2) != true) {
+          m_ShooterLeftPID.setReference(-.6 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
+          m_ShooterRightPID.setReference(-.3 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
+        }
+        else if(m_Timer.hasElapsed(5) != true) {
+          intakeTop.set(1);
+        }
+        else if(m_Timer.hasElapsed(6) != true) {
+          m_ShooterLeftPID.setReference(0.0 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
+          m_ShooterRightPID.setReference(0.0 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
+          intakeBot.set(0);
+          intakeTop.set(0);
+        }
+        else if(m_Timer.hasElapsed(10) != true) {
+          m_BackRightTurnPID.setReference(25, CANSparkMax.ControlType.kPosition);
+          m_FrontRightTurnPID.setReference(25, CANSparkMax.ControlType.kPosition);
+          m_FrontLeftTurnPID.setReference(25, CANSparkMax.ControlType.kPosition);
+          m_BackLeftTurnPID.setReference(25, CANSparkMax.ControlType.kPosition);
+
+          m_BackLeftDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+          m_BackRightDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+          m_FrontLeftDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+          m_FrontRightDrivePID.setReference(-1, CANSparkMax.ControlType.kVelocity);
+        }
+        else{
           m_BackRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
           m_FrontRightTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
           m_FrontLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
-          m_BackLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);  
-      
+          m_BackLeftTurnPID.setReference(0, CANSparkMax.ControlType.kPosition);
+
           m_BackLeftDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
           m_BackRightDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
           m_FrontLeftDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
           m_FrontRightDrivePID.setReference(0, CANSparkMax.ControlType.kVelocity);
-      }
-      break;
+        }
+        break;
     }
   }
 
@@ -646,46 +687,46 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     m_gyro.reset();
     //Reinitialize Velocity drive mode for teleop with correct PIDs
     // Drive Velocity PID coefficients and max rates (need to retune for Velocity Control)
-    kdP = 0.4; 
+    kdP = 0.4;
     kdI = 0.00000;
-    kdD = 0.05; 
-    kdIz = 0; 
-    kdFF = 0.01; 
-    kdMaxOutput = 1; 
+    kdD = 0.05;
+    kdIz = 0;
+    kdFF = 0.01;
+    kdMaxOutput = 1;
     kdMinOutput = -1;
     maxVel = 4; // m/s linear velocity of drive wheel
     maxYaw = 2*Math.PI;   // max rad/s for chassis rotation rate
 
-       
+
     // set PID coefficients
-    
-     m_BackLeftDrivePID.setP(kdP);
-     m_BackLeftDrivePID.setI(kdI);
-     m_BackLeftDrivePID.setD(kdD);
-     m_BackLeftDrivePID.setIZone(kdIz);
-     m_BackLeftDrivePID.setFF(kdFF);
-     m_BackLeftDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
 
-     m_BackRightDrivePID.setP(kdP);
-     m_BackRightDrivePID.setI(kdI);
-     m_BackRightDrivePID.setD(kdD);
-     m_BackRightDrivePID.setIZone(kdIz);
-     m_BackRightDrivePID.setFF(kdFF);
-     m_BackRightDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
+    m_BackLeftDrivePID.setP(kdP);
+    m_BackLeftDrivePID.setI(kdI);
+    m_BackLeftDrivePID.setD(kdD);
+    m_BackLeftDrivePID.setIZone(kdIz);
+    m_BackLeftDrivePID.setFF(kdFF);
+    m_BackLeftDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
 
-     m_FrontLeftDrivePID.setP(kdP);
-     m_FrontLeftDrivePID.setI(kdI);
-     m_FrontLeftDrivePID.setD(kdD);
-     m_FrontLeftDrivePID.setIZone(kdIz);
-     m_FrontLeftDrivePID.setFF(kdFF);
-     m_FrontLeftDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
+    m_BackRightDrivePID.setP(kdP);
+    m_BackRightDrivePID.setI(kdI);
+    m_BackRightDrivePID.setD(kdD);
+    m_BackRightDrivePID.setIZone(kdIz);
+    m_BackRightDrivePID.setFF(kdFF);
+    m_BackRightDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
 
-     m_FrontRightDrivePID.setP(kdP);
-     m_FrontRightDrivePID.setI(kdI);
-     m_FrontRightDrivePID.setD(kdD);
-     m_FrontRightDrivePID.setIZone(kdIz);
-     m_FrontRightDrivePID.setFF(kdFF);
-     m_FrontRightDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
+    m_FrontLeftDrivePID.setP(kdP);
+    m_FrontLeftDrivePID.setI(kdI);
+    m_FrontLeftDrivePID.setD(kdD);
+    m_FrontLeftDrivePID.setIZone(kdIz);
+    m_FrontLeftDrivePID.setFF(kdFF);
+    m_FrontLeftDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
+
+    m_FrontRightDrivePID.setP(kdP);
+    m_FrontRightDrivePID.setI(kdI);
+    m_FrontRightDrivePID.setD(kdD);
+    m_FrontRightDrivePID.setIZone(kdIz);
+    m_FrontRightDrivePID.setFF(kdFF);
+    m_FrontRightDrivePID.setOutputRange(kdMinOutput, kdMaxOutput);
 
     /*m_FrontLeftTurnEncoder.setPosition(0);
     m_FrontRightTurnEncoder.setPosition(0);
@@ -696,9 +737,9 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
   /** This function is called periodically during operator control. */
   @Override
   public void teleopPeriodic() {
-    
-    SmartDashboard.putNumber("Gyro", (m_gyro.getAngle()+180));    
-    
+
+    SmartDashboard.putNumber("Gyro", (m_gyro.getAngle()+180));
+
     //Get the Direction input from the XBox controller left stick
     xAxis = MathUtil.applyDeadband(-m_controller.getLeftY(), .2)*maxVel; // linear m/s
     yAxis = MathUtil.applyDeadband(-m_controller.getLeftX(), .2)*maxVel; // linear m/s
@@ -707,35 +748,35 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     o_ryAxis = MathUtil.applyDeadband(-o_controller.getRightY(), .2); // linear m/s
 
     final var xSpeed =
-        -m_xspeedLimiter.calculate(MathUtil.applyDeadband(m_controller.getLeftY(), 0.2))
-            * maxVel;
+            -m_xspeedLimiter.calculate(MathUtil.applyDeadband(m_controller.getLeftY(), 0.2))
+                    * maxVel;
 
     // Get the y speed or sideways/strafe speed. We are inverting this because
     // we want a positive value when we pull to the left. Xbox controllers
     // return positive values when you pull to the right by default.
     final var ySpeed =
-        -m_yspeedLimiter.calculate(MathUtil.applyDeadband(m_controller.getLeftX(), 0.2))
-            * maxVel;
+            -m_yspeedLimiter.calculate(MathUtil.applyDeadband(m_controller.getLeftX(), 0.2))
+                    * maxVel;
 
     // Get the rate of angular rotation. We are inverting this because we want a
     // positive value when we pull to the left (remember, CCW is positive in
     // mathematics). Xbox controllers return positive values when you pull to
     // the right by default.
     final var rot =
-        -m_rotLimiter.calculate(MathUtil.applyDeadband(m_controller.getRightX(), 0.2))
-          *maxYaw;
+            -m_rotLimiter.calculate(MathUtil.applyDeadband(m_controller.getRightX(), 0.2))
+                    *maxYaw;
 
       /*Calculate Swerve Module States based on controller readings
       if left bumper is pressed Drive will be Robot Relative
       otherwise Drive is Field Centric
       */
 
-      if(m_controller.getLeftBumper()){
-        fieldspeeds =  new ChassisSpeeds(xAxis, yAxis, rot);
-      }
-      else {
-        fieldspeeds = ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rot, Rotation2d.fromDegrees(m_gyro.getAngle()+180));
-      }
+    if(m_controller.getLeftBumper()){
+      fieldspeeds =  new ChassisSpeeds(xAxis, yAxis, rot);
+    }
+    else {
+      fieldspeeds = ChassisSpeeds.fromFieldRelativeSpeeds(xSpeed, ySpeed, rot, Rotation2d.fromDegrees(m_gyro.getAngle()+180));
+    }
     SwerveModuleState[] moduleStates = m_Kinematics.toSwerveModuleStates(fieldspeeds);
     SwerveModuleState BackLeftSwerve = moduleStates[0];
     SwerveModuleState BackRightSwerve = moduleStates[1];
@@ -746,31 +787,31 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     var FrontLeftOptimized = SwerveModuleState.optimize(FrontLeftSwerve, Rotation2d.fromDegrees(m_FrontLeftTurnEncoder.getPosition()));
     var FrontRightOptimized = SwerveModuleState.optimize(FrontRightSwerve, Rotation2d.fromDegrees(m_FrontRightTurnEncoder.getPosition()));
     /**
-     * PIDController objects are commanded to a set point using the 
+     * PIDController objects are commanded to a set point using the
      * SetReference() method and the reference value of the optimized swerve mfodule states
-     * 
+     *
      * The first parameter is the value of the set point, whose units vary
      * depending on the control type set in the second parameter.
-     * 
-     * The second parameter is the control type, can be set to one of four 
+     *
+     * The second parameter is the control type, can be set to one of four
      * parameters:
      * com.revrobotics.CANSparkMax.ControlType.kDutyCycle
      *  com.revrobotics.CANSparkMax.ControlType.kPosition
      *  com.revrobotics.CANSparkMax.ControlType.kVelocity
      *  com.revrobotics.CANSparkMax.ControlType.kVoltage
      */
-    
+
     //Set actual motor output values to drive
     m_BackRightTurnPID.setReference(BackRightOptimized.angle.getDegrees(), CANSparkMax.ControlType.kPosition);
     m_FrontRightTurnPID.setReference(FrontRightOptimized.angle.getDegrees(), CANSparkMax.ControlType.kPosition);
     m_FrontLeftTurnPID.setReference(FrontLeftOptimized.angle.getDegrees(), CANSparkMax.ControlType.kPosition);
-    m_BackLeftTurnPID.setReference(BackLeftOptimized.angle.getDegrees(), CANSparkMax.ControlType.kPosition);  
+    m_BackLeftTurnPID.setReference(BackLeftOptimized.angle.getDegrees(), CANSparkMax.ControlType.kPosition);
     m_BackLeftDrivePID.setReference(BackLeftOptimized.speedMetersPerSecond, CANSparkMax.ControlType.kVelocity);
     m_BackRightDrivePID.setReference(BackRightOptimized.speedMetersPerSecond, CANSparkMax.ControlType.kVelocity);
     m_FrontLeftDrivePID.setReference(FrontLeftOptimized.speedMetersPerSecond, CANSparkMax.ControlType.kVelocity);
     m_FrontRightDrivePID.setReference(FrontRightOptimized.speedMetersPerSecond, CANSparkMax.ControlType.kVelocity);
-        
-        
+
+
     /* //TURN DRIVE MOTORS OFF
     BackLeftDrive.set(0);
     BackRightDrive.set(0);
@@ -778,11 +819,11 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     FrontLeftDrive.set(0);
     */
 
-   //output the current values to the SmartDashboard, by reading BackLeftDrive and BackLeftTurn
+    //output the current values to the SmartDashboard, by reading BackLeftDrive and BackLeftTurn
     SmartDashboard.putNumber("P Gain", m_BackLeftDrivePID.getP());
     SmartDashboard.putNumber("Set Chassis Speed", Math.sqrt(xAxis*xAxis + yAxis*yAxis));
     SmartDashboard.putNumber("Set Chassis Angle", Math.atan2(yAxis,xAxis));
-    SmartDashboard.putNumber("BL S_Angle", BackLeftSwerve.angle.getDegrees()); 
+    SmartDashboard.putNumber("BL S_Angle", BackLeftSwerve.angle.getDegrees());
     SmartDashboard.putNumber("BL S_Velocity", BackLeftSwerve.speedMetersPerSecond);
     SmartDashboard.putNumber("BL P_Angle", m_BackLeftTurnEncoder.getPosition());
     SmartDashboard.putNumber("BL P_Velocity", m_BackLeftDriveEncoder.getVelocity());
@@ -800,11 +841,11 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     SmartDashboard.putNumber("FR P_Velocity", m_FrontRightDriveEncoder.getVelocity());
 
 
-      
+
     //Run Intake
     intakeBot.set((m_controller.getRightTriggerAxis() - m_controller.getLeftTriggerAxis())*0.7);
     intakeTop.set(m_controller.getRightTriggerAxis() - m_controller.getLeftTriggerAxis());
-    
+
     hangLeft.set(o_lyAxis*0.7);
     hangRight.set(o_ryAxis*0.7);
 
@@ -817,9 +858,9 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
     }
     else if(o_controller.getAButton()){  //shooter speaker
       //shooterLeft.set(-0.7);
-      //shooterRight.set(0.4);  
+      //shooterRight.set(0.4);
       m_ShooterLeftPID.setReference(-0.6 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
-      m_ShooterRightPID.setReference(-0.3 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);  
+      m_ShooterRightPID.setReference(-0.3 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
     }
     else if(o_controller.getYButton()){  //slow shooter to load for amp/trap
       //shooterLeft.set(-0.2);`
@@ -828,10 +869,10 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
       m_ShooterRightPID.setReference(-0.2 * maxShootVelocity, CANSparkMax.ControlType.kVelocity);
     }
     else{
-     //shooterLeft.set(0.0);  //shooter stops
-     //shooterRight.set(0.0);
-     m_ShooterLeftPID.setReference(0, CANSparkMax.ControlType.kVelocity);
-     m_ShooterRightPID.setReference(0, CANSparkMax.ControlType.kVelocity);
+      //shooterLeft.set(0.0);  //shooter stops
+      //shooterRight.set(0.0);
+      m_ShooterLeftPID.setReference(0, CANSparkMax.ControlType.kVelocity);
+      m_ShooterRightPID.setReference(0, CANSparkMax.ControlType.kVelocity);
     }
 
     if(o_controller.getRightBumper()){
@@ -857,7 +898,7 @@ ChassisSpeeds fieldspeeds = new ChassisSpeeds(0,0,0);
 //60 degrees
 
   }
-  
+
   @Override
   public void testInit() {
     // Cancels all running commands at the start of test mode.
